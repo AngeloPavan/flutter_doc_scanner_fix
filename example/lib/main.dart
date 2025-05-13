@@ -1,152 +1,61 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_doc_scanner/flutter_doc_scanner.dart';
 
 void main() {
-  runApp(
-    MaterialApp(
-      home: MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
-  MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
-  dynamic _scannedDocuments;
+  String _platformVersion = 'Unknown';
+  final _flutterDocScannerPlugin = FlutterDocScanner();
 
-  Future<void> scanDocument() async {
-    dynamic scannedDocuments;
-    try {
-      scannedDocuments = await FlutterDocScanner().getScanDocuments(page: 4) ??
-          'Unknown platform documents';
-    } on PlatformException {
-      scannedDocuments = 'Failed to get scanned documents.';
-    }
-    print(scannedDocuments.toString());
-    if (!mounted) return;
-    setState(() {
-      _scannedDocuments = scannedDocuments;
-    });
+  @override
+  void initState() {
+    super.initState();
+    initPlatformState();
   }
 
-  Future<void> scanDocumentAsImages() async {
-    dynamic scannedDocuments;
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> initPlatformState() async {
+    String platformVersion;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    // We also handle the message potentially returning null.
     try {
-      scannedDocuments =
-          await FlutterDocScanner().getScannedDocumentAsImages(page: 4) ??
-              'Unknown platform documents';
+      platformVersion =
+          await _flutterDocScannerPlugin.getPlatformVersion() ?? 'Unknown platform version';
     } on PlatformException {
-      scannedDocuments = 'Failed to get scanned documents.';
+      platformVersion = 'Failed to get platform version.';
     }
-    print(scannedDocuments.toString());
-    if (!mounted) return;
-    setState(() {
-      _scannedDocuments = scannedDocuments;
-    });
-  }
 
-  Future<void> scanDocumentAsPdf() async {
-    dynamic scannedDocuments;
-    try {
-      scannedDocuments =
-          await FlutterDocScanner().getScannedDocumentAsPdf(page: 4) ??
-              'Unknown platform documents';
-    } on PlatformException {
-      scannedDocuments = 'Failed to get scanned documents.';
-    }
-    print(scannedDocuments.toString());
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
     if (!mounted) return;
-    setState(() {
-      _scannedDocuments = scannedDocuments;
-    });
-  }
 
-  Future<void> scanDocumentUri() async {
-    //This Feature only supported for Android.
-    dynamic scannedDocuments;
-    try {
-      scannedDocuments =
-          await FlutterDocScanner().getScanDocumentsUri(page: 4) ??
-              'Unknown platform documents';
-    } on PlatformException {
-      scannedDocuments = 'Failed to get scanned documents.';
-    }
-    print(scannedDocuments.toString());
-    if (!mounted) return;
     setState(() {
-      _scannedDocuments = scannedDocuments;
+      _platformVersion = platformVersion;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Document Scanner Example',
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Document Scanner example app'),
+          title: const Text('Plugin example app'),
         ),
         body: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _scannedDocuments != null
-                    ? Text(_scannedDocuments.toString())
-                    : const Text("No Documents Scanned"),
-              ],
-            ),
-          ),
-        ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    scanDocument();
-                  },
-                  child: const Text("Scan Documents"),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    scanDocument();
-                  },
-                  child: const Text("Scan Documents As Images"),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    scanDocument();
-                  },
-                  child: const Text("Scan Documents As PDF"),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ElevatedButton(
-                  onPressed: () {
-                    scanDocumentUri();
-                  },
-                  child: const Text("Get Scan Documents URI"),
-                ),
-              ),
-            ],
-          ),
+          child: Text('Running on: $_platformVersion\n'),
         ),
       ),
     );
