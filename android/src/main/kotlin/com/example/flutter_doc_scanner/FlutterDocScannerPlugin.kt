@@ -42,7 +42,6 @@ class FlutterDocScannerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware 
     private fun scanDocument() {
         val options = GmsDocumentScannerOptions.Builder()
             .setGalleryImportAllowed(false)
-            .setPageLimit(1)
             .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
             .build()
 
@@ -79,19 +78,28 @@ class FlutterDocScannerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware 
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        activity = binding.activity
-        binding.addActivityResultListener { requestCode, resultCode, data ->
-            if (requestCode == REQUEST_CODE_SCAN && resultCode == Activity.RESULT_OK) {
-                val scanningResult = GmsDocumentScanningResult.fromActivityResultIntent(data)
-                scanningResult?.pages?.let { pages ->
-                    val imageUri = pages[0].imageUri
-                    val imageBytes = readBytesFromUri(imageUri)
-                    resultChannel.success(imageBytes)
+    activity = binding.activity
+    binding.addActivityResultListener { requestCode, resultCode, data ->
+        if (requestCode == REQUEST_CODE_SCAN && resultCode == Activity.RESULT_OK) {
+            val scanningResult = GmsDocumentScanningResult.fromActivityResultIntent(data)
+            val pages = scanningResult?.pages ?: emptyList()
+
+            // Prepara la lista di ByteArray
+            val imagesBytes = ArrayList<ByteArray>(pages.size)
+            for (page in pages) {
+                page.imageUri?.let { uri ->
+                    readBytesFromUri(uri)?.let { bytes ->
+                        imagesBytes.add(bytes)
+                    }
                 }
-                true
-            } else false
-        }
+            }
+
+            // Torniamo la lista al Dart side
+            resultChannel.success(imagesBytes)
+            true
+        } else false
     }
+}
 
     override fun onDetachedFromActivity() {
         activity = null
