@@ -15,7 +15,7 @@ class FlutterDocScanner {
   }
 
   static Future<List<Uint8List>?> scanDocumentIOS() async {
-    final List<Uint8List>? bytes = await _channel.invokeMethod('scanDocument');
+    final List<Uint8List>? bytes = await _channel.invokeListMethod<Uint8List>('scanDocument');
     return bytes;
   }
 }
