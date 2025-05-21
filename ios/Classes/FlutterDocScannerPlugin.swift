@@ -39,16 +39,28 @@ public class FlutterDocScannerPlugin: NSObject, FlutterPlugin {
 @available(iOS 13.0, *)
 extension FlutterDocScannerPlugin: VNDocumentCameraViewControllerDelegate {
     public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
-        if scan.pageCount > 0 {
-            let image = scan.imageOfPage(at: 0)
-            if let imageData = image.jpegData(compressionQuality: 0.8) {
-                controller.dismiss(animated: true, completion: nil)
-                result?(FlutterStandardTypedData(bytes: imageData))
-            } else {
-                result?(FlutterError(code: "IMAGE_ERROR", message: "Could not convert image to bytes", details: nil))
-            }
-        } else {
+        guard scan.pageCount > 0 else {
+            controller.dismiss(animated: true, completion: nil)
             result?(FlutterError(code: "NO_DOCUMENT", message: "No document was scanned", details: nil))
+            return
+        }
+
+        var imagesData: [FlutterStandardTypedData] = []
+
+        for i in 0..<scan.pageCount {
+            let image = scan.imageOfPage(at: i)
+            if let data = image.jpegData(compressionQuality: 0.8) {
+                imagesData.append(FlutterStandardTypedData(bytes: data))
+            } else {
+                // Se una pagina fallisce, la saltiamo o notifichiamo errore
+                // Qui decidiamo di continuare con le altre pagine
+                print("❌ Impossibile convertire la pagina \(i) in JPEG.")
+            }
+        }
+
+        controller.dismiss(animated: true) {
+            // Torniamo l'array di immagini al Dart side
+            self.result?(imagesData)
         }
     }
 
